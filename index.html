@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Transcoder (WebM/AVI/MOV to MP4)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@latest"></script>
+</head>
+<body>
+    <h1>Transcode Video to MP4</h1>
+    <input type="file" id="videoInput" accept="video/*">
+    <button id="transcodeButton">Transcode to MP4</button>
+    <p id="status"></p>
+    <a id="downloadLink" style="display:none;">Download MP4</a>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+
+        document.getElementById('transcodeButton').addEventListener('click', async () => {
+            const videoFile = document.getElementById('videoInput').files[0];
+            if (!videoFile) {
+                alert('Please select a video file.');
+                return;
+            }
+
+            document.getElementById('status').textContent = 'Loading FFmpeg...';
+            await ffmpeg.load();
+            document.getElementById('status').textContent = 'FFmpeg Loaded. Transcoding...';
+
+            const fileName = videoFile.name.split('.').slice(0, -1).join('.') + '.mp4';
+            ffmpeg.FS('writeFile', videoFile.name, await fetchFile(videoFile));
+
+            await ffmpeg.run('-i', videoFile.name, fileName);
+
+            const mp4Data = ffmpeg.FS('readFile', fileName);
+
+            const mp4Blob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
+            const mp4Url = URL.createObjectURL(mp4Blob);
+
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = mp4Url;
+            downloadLink.download = fileName;
+            downloadLink.style.display = 'block';
+            downloadLink.textContent = 'Download MP4';
+            document.getElementById('status').textContent = 'Transcoding Complete!';
+        });
+    </script>
+</body>
+</html>
